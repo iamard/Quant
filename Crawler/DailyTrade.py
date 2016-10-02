@@ -3,6 +3,7 @@
 from Crawler import Crawler
 from StringIO import StringIO
 import pandas as pandas
+from dateutil import parser
 
 class DailyTrade(Crawler):
     def __init__(self):
@@ -13,6 +14,15 @@ class DailyTrade(Crawler):
         self.__query = 'http://www.twse.com.tw/ch/trading/exchange/STOCK_DAY/STOCK_DAYMAIN.php'
         self.__data  = {'download': 'csv', 'query_year': '', 'query_month': '', 'CO_ID':''}
 
+    def __add_1911_to_year(self, date):
+        try:
+            date = parser.parse(date)
+            date = ('-').join([str(date.year + 1911), str(date.month), str(date.day)])
+        except ValueError:
+            return None
+        print date
+        return date
+
     def quote_daily_trade(self, code, year, month, dump = None):
         self.__data['query_year'] = year
         self.__data['query_month'] = month
@@ -20,7 +30,7 @@ class DailyTrade(Crawler):
         
         data  = self._handle_post_request(self.__query, self.__data, 'cp950')
         if data == None:
-            print("Can't query daily trace info")
+            print("Can't query daily tracd info")
             return None
 
         # Create data frame
@@ -31,7 +41,12 @@ class DailyTrade(Crawler):
                                 header = 0,
                                 index_col = 0,
                                 usecols = [0, 1, 2, 3, 4, 5, 6, 7, 8])
-
+        if len(frame.index) != 0:
+            frame.index = frame.index.map(self.__add_1911_to_year)
+        else:
+            print("Can't query daily tracd info")
+            return None
+                       
         if dump == "csv":
             frame.to_csv("{CODE}_{YEAR}_{MONTH}-DailyTrade.csv".format(CODE = code, YEAR = year, MONTH = month), encoding = 'cp950')
         elif dump == "xlsx":

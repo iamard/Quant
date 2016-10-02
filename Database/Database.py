@@ -1,14 +1,17 @@
 # coding=utf-8
 
-import numpy   as np
-import pandas  as pd
-import sqlite3 as sql
+import numpy   as numpy
+import pandas  as pandas
+import sqlite3 as sql3
+import threading as thread
 
 class Database():
-    def __init__(self):
-        self.__connx   = sql.connect("StockData.db", detect_types = sql.PARSE_DECLTYPES | sql.PARSE_COLNAMES)
+    __lock = thread.Lock()  
 
-    def __quote_schema(self, frame, name, index, flavor):
+    def __init__(self):
+        self.__connx = sql3.connect("StockData.db", detect_types = sql3.PARSE_DECLTYPES | sql3.PARSE_COLNAMES)
+        
+    def _quote_data_schema(self, frame, name, index, flavor):
         command = "CREATE TABLE {name} (\n  ".format(name = name)
 
         if index == True:
@@ -19,7 +22,7 @@ class Database():
         output  = []
         for index, key in enumerate(types.index):
             current = types[key]
-            if issubclass(current.type, np.floating):
+            if issubclass(current.type, numpy.floating):
                 current = "DOUBLE"
             output.append((key, current))
         columns = ',\n  '.join('%s %s' % x for x in output)
@@ -27,11 +30,12 @@ class Database():
         command += ");"
         return command
 
-    def writeFrame(self, frame, name, index = False, flavor = 'sqlite', if_exists = 'fail'):
-        schema = self.__quote_schema(frame, name, index, "sqlite")
-        return frame.to_sql(name, self.__connx, index = index, flavor = flavor, schema = schema, if_exists = if_exists)
+    def write_data_frame(self, frame, name, index = False, flavor = 'sqlite', if_exists = 'fail'):
+        schema = self._quote_data_schema(frame, name, index, "sqlite")
+        with self.__lock:
+            return frame.to_sql(name, self.__connx, index = index, flavor = flavor, schema = schema, if_exists = if_exists)
 
-    def readFrame(self, name, startDate = None, endDate = None):
+    def read_data_frame(self, name, startDate = None, endDate = None):
         # Set the query command
         if startDate == None or endDate == None:
             query = "select * from {TABLE};".format(TABLE = name)
@@ -40,6 +44,7 @@ class Database():
             query = query.format(TABLE = name, START = startDate, END = endDate)
 
         # Submit the query
-        frame = pd.read_sql(query, self.__connx, index_col = "Date", parse_dates = ["Date"])
+        with self.__lock:
+            frame = pandas.read_sql(query, self.__connx, index_col = "Date", parse_dates = ["Date"])
         frame = frame.sort_index(ascending = True)
         return frame

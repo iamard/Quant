@@ -41,6 +41,8 @@ class StockCode(Crawler):
         elif dump == "xlsx":
             frame.to_excel("StockCode.xlsx")
 
+        print frame.head()
+            
         return frame
 
 
