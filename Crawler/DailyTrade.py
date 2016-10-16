@@ -19,8 +19,7 @@ class DailyTrade(Crawler):
             date = parser.parse(date)
             date = ('-').join([str(date.year + 1911), str(date.month), str(date.day)])
         except ValueError:
-            return None
-        print date
+            return pandas.NaT
         return date
 
     def quote_daily_trade(self, code, year, month, dump = None):
@@ -30,7 +29,7 @@ class DailyTrade(Crawler):
         
         data  = self._handle_post_request(self.__query, self.__data, 'cp950')
         if data == None:
-            print("Can't query daily tracd info")
+            print("Can't query daily trade info")
             return None
 
         # Create data frame
@@ -40,11 +39,13 @@ class DailyTrade(Crawler):
                                 skiprows = 1,
                                 header = 0,
                                 index_col = 0,
-                                usecols = [0, 1, 2, 3, 4, 5, 6, 7, 8])
-        if len(frame.index) != 0:
-            frame.index = frame.index.map(self.__add_1911_to_year)
-        else:
-            print("Can't query daily tracd info")
+                                usecols = [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                                parse_dates = True, 
+                                date_parser = self.__add_1911_to_year)
+        frame = frame.dropna(how = 'all')
+
+        if len(frame.index) == 0:
+            print("Can't query daily trade info")
             return None
                        
         if dump == "csv":
@@ -56,5 +57,6 @@ class DailyTrade(Crawler):
 
 if __name__ == "__main__":
     crawler = DailyTrade()
-    frame   = crawler.quote_daily_trade('0050', 2013, 8, dump = 'csv')
+    frame   = crawler.quote_daily_trade('1101', 2013, 8, dump = 'csv')
+    frame   = crawler.quote_daily_trade('1256', 2013, 8, dump = 'csv')
     print frame.head(10)

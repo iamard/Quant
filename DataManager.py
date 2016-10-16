@@ -50,7 +50,9 @@ class DataManager:
         for current in month_range:
             for code in code_list:
                 print "Quote daily trade " + code + " for "+ str(current.year) + "-" + str(current.month)
-                daily_price = daily_trade.quote_daily_trade(code, current.year, current.month, dump = 'csv')
+                daily_price = daily_trade.quote_daily_trade(code, current.year, current.month, dump = dump)
+                #print daily_price.head(5)
+                
                 if daily_price is not None:
                     # Save daily volume, open, close, high, and low values
                     volume    = dict(zip(daily_price.index, daily_price[u'成交股數'].values))
@@ -60,19 +62,19 @@ class DataManager:
                     close_raw = dict(zip(daily_price.index, daily_price[u'收盤價'].values))
                     for key in daily_price.index:
                         # Store daily volume
-                        daily_vol.loc[datetime.strptime(key, "%Y-%m-%d"), code] = volume[key]
+                        daily_vol.loc[key.strftime("%Y-%m-%d"), code] = volume[key]
                         
                         # Store daily open price
-                        daily_open.loc[datetime.strptime(key, "%Y-%m-%d"), code] = open_raw[key]
+                        daily_open.loc[key.strftime("%Y-%m-%d"), code] = open_raw[key]
 
                         # Store daily high price
-                        daily_high.loc[datetime.strptime(key, "%Y-%m-%d"), code] = high_raw[key]
+                        daily_high.loc[key.strftime("%Y-%m-%d"), code] = high_raw[key]
 
                         # Store daily low price
-                        daily_low.loc[datetime.strptime(key, "%Y-%m-%d"), code] = low_raw[key]
+                        daily_low.loc[key.strftime("%Y-%m-%d"), code] = low_raw[key]
 
                         # Store daily close price
-                        daily_close.loc[datetime.strptime(key, "%Y-%m-%d"), code] = close_raw[key]
+                        daily_close.loc[key.strftime("%Y-%m-%d"), code] = close_raw[key]
                                 
                 time.sleep(5)
 
@@ -82,6 +84,7 @@ class DataManager:
         daily_low   = daily_low.dropna(how = 'all')
         daily_close = daily_close.dropna(how = 'all')
 
+        dump = "csv"
         if dump == "csv":
             daily_vol.to_csv("daily_vol.csv", encoding = 'cp950')
             daily_open.to_csv("daily_open.csv", encoding = 'cp950')
@@ -137,7 +140,7 @@ class DataManager:
             print "Quote daily info for " + current.strftime('%Y-%m-%d')
 
             # Quote daily PBR, yield and PE value
-            daily_value = daily_info.quote_daily_info(current.year, current.month, current.day)
+            daily_value = daily_info.quote_daily_info(current.year, current.month, current.day, dump = dump)
             if daily_value is not None:
                 # Daily PBR ratio
                 pbr_raw   = dict(zip(daily_value.index, daily_value['股價淨值比'].values))
@@ -193,11 +196,11 @@ class DataManager:
         thread_list = []
 
         thread_list.append(threading.Thread(
-                target = self._quote_daily_trade, args = [date_range, code_list]))
+                target = self._quote_daily_trade, args = [date_range, code_list, dump, if_exists]))
 
         thread_list.append(threading.Thread(
-                target = self._quote_daily_info, args = [date_range, code_list]))
-                
+                target = self._quote_daily_info, args = [date_range, code_list, dump, if_exists]))
+
         for thread in thread_list:
             thread.start()
 
@@ -249,7 +252,7 @@ class DataManager:
         start_date = datetime.strptime(start_date, "%Y-%m-%d")
         end_date   = datetime.strptime(end_date, "%Y-%m-%d")
         if valid_start == None or valid_end == None:
-            self._quote_web_data(start_date, end_date, dump = 'csv', if_exists = "replace")
+            self._quote_web_data(start_date, end_date, if_exists = "replace")
             config.set("DATABASE", "validStart", start_date.strftime("%Y-%m-%d"))
             config.set("DATABASE", "validEnd", end_date.strftime("%Y-%m-%d"))
         else:
@@ -263,25 +266,25 @@ class DataManager:
                 if start_date < valid_start:
                     if end_date <= valid_end:
                         end_date   = valid_start - timedelta(1)
-                        self._quote_web_data(start_date, end_date, if_exists = "append", dump = 'csv')
+                        self._quote_web_data(start_date, end_date, if_exists = "append")
                     else:
                         # Subrange1
                         period_end = valid_start - timedelta(1)
-                        self._quote_web_data(start_date, period_end, if_exists = "append", dump = 'csv')
+                        self._quote_web_data(start_date, period_end, if_exists = "append")
 
                         # Subrange2
                         start_date = valid_end + timedelta(1)
-                        self._quote_web_data(start_date, end_date, if_exists = "append", dump = 'csv')
+                        self._quote_web_data(start_date, end_date, if_exists = "append")
                 elif end_date > valid_end:
                     start_date = valid_end + timedelta(1)
-                    self._quote_web_data(start_date, end_date, if_exists = "append", dump = 'csv')
+                    self._quote_web_data(start_date, end_date, if_exists = "append")
             else:
                 if end_date < valid_start:
                     end_date = valid_start - timedelta(1)
-                    self._quote_web_data(start_date, end_date, if_exists = "append", dump = 'csv')
+                    self._quote_web_data(start_date, end_date, if_exists = "append")
                 else:
                     start_date = valid_end + timedelta(1)
-                    self._quote_web_data(start_date, end_date, if_exists = "append", dump = 'csv')
+                    self._quote_web_data(start_date, end_date, if_exists = "append")
 
             min_start = min(range1.start, range2.start)
             print min_start, start_date
@@ -297,4 +300,4 @@ class DataManager:
 
 if __name__ == "__main__":
     manager = DataManager()
-    manager.quote_stock_data("2013-01-01", "2013-02-03")
+    manager.quote_stock_data("2013-01-01", "2013-01-03")
