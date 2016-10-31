@@ -3,14 +3,17 @@
 from ConfigParser import *
 from Crawler import *
 from Database import *
+from Thread import *
 from datetime import *
 from dateutil import *
-import threading
 import time
 from collections import namedtuple
 
-class DataManager:
+class DataManager(Observerable):
     def __init__(self):
+        # Initialize Crawler class
+        Observerable.__init__(self)
+
         # Create configuration handle
         self.__config  = ConfigParser()
         self.__config.read('Config.ini')
@@ -195,17 +198,24 @@ class DataManager:
         date_range  = pd.DatetimeIndex(pd.date_range(start_date, end_date)).date
         thread_list = []
 
-        thread_list.append(threading.Thread(
-                target = self._quote_daily_trade, args = [date_range, code_list, dump, if_exists]))
+        self.add_observer(self._quote_daily_trade)
+        self.add_observer(self._quote_daily_info)
 
-        thread_list.append(threading.Thread(
-                target = self._quote_daily_info, args = [date_range, code_list, dump, if_exists]))
+        self.run_observer([date_range, code_list, dump, if_exists])
 
-        for thread in thread_list:
-            thread.start()
+        self.wait_observer()
+        
+        #thread_list.append(threading.Thread(
+        #        target = self._quote_daily_trade, args = [date_range, code_list, dump, if_exists]))
 
-        for thread in thread_list:
-            thread.join()
+        #thread_list.append(threading.Thread(
+        #        target = self._quote_daily_info, args = [date_range, code_list, dump, if_exists]))
+
+        #for thread in thread_list:
+        #    thread.start()
+
+        #for thread in thread_list:
+        #    thread.join()
 
     def _quote_database(self, start_date, end_date):
         database    = Database()
