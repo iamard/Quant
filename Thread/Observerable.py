@@ -1,6 +1,6 @@
 import threading
 import Queue as queue
-import sys
+import sys as sys
 
 class Observerable:
     def __init__(self):

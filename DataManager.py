@@ -54,8 +54,7 @@ class DataManager(Observerable):
             for code in code_list:
                 print "Quote daily trade " + code + " for "+ str(current.year) + "-" + str(current.month)
                 daily_price = daily_trade.quote_daily_trade(code, current.year, current.month, dump = dump)
-                #print daily_price.head(5)
-                
+   
                 if daily_price is not None:
                     # Save daily volume, open, close, high, and low values
                     volume    = dict(zip(daily_price.index, daily_price[u'成交股數'].values))
@@ -198,24 +197,15 @@ class DataManager(Observerable):
         date_range  = pd.DatetimeIndex(pd.date_range(start_date, end_date)).date
         thread_list = []
 
+        # Register observer
         self.add_observer(self._quote_daily_trade)
         self.add_observer(self._quote_daily_info)
 
+        # Start running observer
         self.run_observer([date_range, code_list, dump, if_exists])
 
+        # Wait observer done
         self.wait_observer()
-        
-        #thread_list.append(threading.Thread(
-        #        target = self._quote_daily_trade, args = [date_range, code_list, dump, if_exists]))
-
-        #thread_list.append(threading.Thread(
-        #        target = self._quote_daily_info, args = [date_range, code_list, dump, if_exists]))
-
-        #for thread in thread_list:
-        #    thread.start()
-
-        #for thread in thread_list:
-        #    thread.join()
 
     def _quote_database(self, start_date, end_date):
         database    = Database()
@@ -308,6 +298,19 @@ class DataManager(Observerable):
         # Read historical data from database
         return self._quote_database(start_date, end_date)
 
+    def merge_stock_data(self, file, type):
+        database   = Database()
+        data_frame = pd.read_csv(file,
+                                 index_col = 0,
+                                 header = 0)
+        print data_frame.dtypes
+        
+        if len(data_frame.index) != 0:
+            database.write_data_frame(data_frame, type, index = True, if_exists = "replace")
+                    
 if __name__ == "__main__":
     manager = DataManager()
     manager.quote_stock_data("2013-01-01", "2013-01-03")
+    #manager.merge_stock_data("daily_close.csv", "daily_close")
+    
+    

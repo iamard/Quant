@@ -32,14 +32,13 @@ class Database():
 
     def write_data_frame(self, frame, name, index = False, flavor = 'sqlite', if_exists = 'fail'):
         schema = self._quote_data_schema(frame, name, index, "sqlite")
-        print schema
         with self.__lock:
             return frame.to_sql(name, self.__connx, index = index, flavor = flavor, schema = schema, if_exists = if_exists)
 
     def read_data_frame(self, name, startDate = None, endDate = None):
         # Set the query command
         if startDate == None or endDate == None:
-            query = "select * from {TABLE};".format(TABLE = name)
+            query = "SELECT * from {TABLE};".format(TABLE = name)
         else:
             query = "SELECT * from {TABLE} WHERE Date BETWEEN \'{START}\' AND \'{END}\';"
             query = query.format(TABLE = name, START = startDate, END = endDate)

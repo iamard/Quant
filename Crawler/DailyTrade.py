@@ -22,6 +22,12 @@ class DailyTrade(Crawler):
             return pandas.NaT
         return date
 
+    def __string_to_float(self, string):
+        try:
+            return float(''.join(x for x in string if x.isdigit()))
+        except:
+            return float('nan')
+        
     def quote_daily_trade(self, code, year, month, dump = None):
         self.__data['query_year'] = year
         self.__data['query_month'] = month
@@ -45,9 +51,13 @@ class DailyTrade(Crawler):
         frame = frame.dropna(how = 'all')
 
         if len(frame.index) == 0:
-            print("Can't query daily trade info")
+            print("Can't query daily trade info for " + code)
             return None
-                       
+
+        frame[u"成交股數"] = frame[u"成交股數"].apply(self.__string_to_float)
+        frame[u"成交金額"] = frame[u"成交金額"].apply(self.__string_to_float)
+        frame[u"成交筆數"] = frame[u"成交筆數"].apply(self.__string_to_float)
+
         if dump == "csv":
             frame.to_csv("{CODE}_{YEAR}_{MONTH}-DailyTrade.csv".format(CODE = code, YEAR = year, MONTH = month), encoding = 'cp950')
         elif dump == "xlsx":
@@ -58,5 +68,5 @@ class DailyTrade(Crawler):
 if __name__ == "__main__":
     crawler = DailyTrade()
     frame   = crawler.quote_daily_trade('1101', 2013, 8, dump = 'csv')
-    frame   = crawler.quote_daily_trade('1256', 2013, 8, dump = 'csv')
+    #frame   = crawler.quote_daily_trade('1256', 2013, 8, dump = 'csv')
     print frame.head(10)
