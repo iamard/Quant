@@ -40,8 +40,6 @@ class StockCode(Crawler):
             frame.to_csv("StockCode.csv", encoding = 'utf8')
         elif dump == "xlsx":
             frame.to_excel("StockCode.xlsx")
-
-        print frame.head()
             
         return frame
 
