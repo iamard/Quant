@@ -233,7 +233,6 @@ class DataManager(Observerable):
         config      = self.__config
         valid_start = config.get("DATABASE", "validStart")
         if valid_start != '':
-            print valid_start
             valid_start = datetime.strptime(valid_start, "%Y-%m-%d")
         else:
             valid_start = None
@@ -287,7 +286,6 @@ class DataManager(Observerable):
                     self._quote_web_data(start_date, end_date, if_exists = "append")
 
             min_start = min(range1.start, range2.start)
-            print min_start, start_date
             max_end   = max(range1.end, range2.end)
             config.set("DATABASE", "validStart", min_start.strftime("%Y-%m-%d"))
             config.set("DATABASE", "validEnd", max_end.strftime("%Y-%m-%d"))
@@ -310,7 +308,7 @@ class DataManager(Observerable):
                     
 if __name__ == "__main__":
     manager = DataManager()
-    manager.quote_stock_data("2013-01-01", "2013-01-03")
+    manager.quote_stock_data("2013-02-01", "2013-06-30")
     #manager.merge_stock_data("daily_close.csv", "daily_close")
     
     
