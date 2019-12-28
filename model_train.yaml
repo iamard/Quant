@@ -1,0 +1,32 @@
+model1:
+    name: CoIntegrate
+    start: '2007-01-01 8:00'
+    end: '2019-12-01 8:00'
+    ticker: [ 'SPY', 'AAPL', 'ADBE', 'SYMC', 'EBAY', 'MSFT', 'QCOM', 'HPQ', 'JNPR', 'AMD', 'IBM' ]
+
+model2:
+    name: CoIntegrate
+    # Can't fetch AKP
+    start: '2007-01-01 8:00'
+    end: '2019-12-01 8:00'
+    ticker: [ 'NCV', 'NCZ', 'NIE', 'ASA', 'FAX', 'IAF', 'AEF', 'AGD', 'FCO', 'AWP',
+              'ACP', 'JEQ', 'AOD', 'ADX', 'PEO', 'AVK', 'AWF', 'AFB', 'CBH',
+              'ACV', 'NFJ', 'AFT', 'AIF', 'ARDC', 'BCV', 'MCI', 'BGH', 'MPV', 'BGIO',
+              'BFZ', 'BHK', 'HYT', 'BTZ', 'DSU', 'BGR', 'CII', 'BDJ', 'BOE', 'EGF',
+              'BGY', 'BFO', 'FRA', 'BGT', 'BME', 'BKT', 'BKN', 'BLW', 'BTA', 'BZM',
+              'BIT', 'BAF', 'BYM', 'MUI', 'MNE', 'BTT', 'MUA', 'MEN', 'MUC', 'MHD',
+              'MUH', 'MFL', 'MUJ', 'MHN', 'MUE', 'MUS', 'MVF', 'MVT', 'MYD', 'MZA',
+              'MYC', 'MCA', 'MYF', 'MIY', 'MYJ', 'MYN', 'MPA', 'MYI', 'MQY', 'MQT',
+              'BKK', 'BBK', 'BFK', 'BLE', 'BBF', 'MFT', 'BSE', 'BQH', 'BFY', 'BNY']
+
+model3:
+    name: LSTMModel
+    start: '2007-01-01 8:00'
+    end: '2019-12-01 8:00'
+    ticker: ['0050.tw']
+
+model4:
+    name: GRUModel
+    start: '2007-01-01 8:00'
+    end: '2019-12-01 8:00'
+    ticker: ['0050.tw']
