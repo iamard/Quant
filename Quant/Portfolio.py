@@ -9,19 +9,19 @@ class PriceQuoter:
     def is_tick(self):
         return False
 
-    def best_bid_ask(self):
+    def best_bid_ask(self, ticker):
         pass
 
-    def last_close(self):
+    def close(self, ticker):
         pass
 
 class Position(object):
     def __init__(self, action, ticker, quantity, price, commission, bid, ask):
         self.action     = action
         self.ticker     = ticker
-        self.quantity   = init_quantity
-        self.init_price = init_price
-        self.init_commission = init_commission
+        self.quantity   = quantity
+        self.init_price = price
+        self.init_commission = commission
 
         self.realised_pnl = 0
         self.unrealised_pnl = 0
@@ -32,7 +32,7 @@ class Position(object):
         self.avg_sld = 0
         self.total_bot = 0
         self.total_sld = 0
-        self.total_commission = init_commission
+        self.total_commission = commission
 
         self.__setup__()
 
@@ -129,8 +129,8 @@ class Position(object):
         return net_total;
         
 class Portfolio:
-    ACTION_BOT = 'BOT'
-    ACTION_SLD = 'SLD'
+    ACTION_BUY  = "BOT"
+    ACTION_SELL = "SLD"
 
     def __init__(self, price_quoter, start_cash, log_handler):
         self.price_quoter = price_quoter
@@ -149,10 +149,10 @@ class Portfolio:
 
         for ticker in self.positions:
             position = self.positions[ticker]
-            if self.price_quoter.istick():
+            if self.price_quoter.is_tick():
                 bid, ask = self.price_quoter.best_bid_ask(ticker)
             else:
-                close_price = self.price_quoter.last_close(ticker)
+                close_price = self.price_quoter.close(ticker)
                 bid = close_price
                 ask = close_price
 
@@ -165,10 +165,10 @@ class Portfolio:
 
     def __add__(self, action, ticker, quantity, price, commission):
         if ticker not in self.positions:
-            if self.price_quoter.istick():
+            if self.price_quoter.is_tick():
                 bid, ask = self.price_quoter.best_bid_ask(ticker)
             else:
-                close_price = self.price_quoter.last_close(ticker)
+                close_price = self.price_quoter.close(ticker)
                 bid = close_price
                 ask = close_price
 
@@ -186,10 +186,10 @@ class Portfolio:
             self.positions[ticker].transact(
                 action, quantity, price, commission
             )
-            if self.price_handler.istick():
-                bid, ask = self.price_handler.get_best_bid_ask(ticker)
+            if self.price_quoter.is_tick():
+                bid, ask = self.price_quoter.get_best_bid_ask(ticker)
             else:
-                close_price = self.price_handler.get_last_close(ticker)
+                close_price = self.price_quoter.close(ticker)
                 bid = close_price
                 ask = close_price
 
@@ -207,9 +207,9 @@ class Portfolio:
             )
 
     def transact(self, action, ticker, quantity, price, commission):
-        if action == ACTION_BOT:
+        if action == Portfolio.ACTION_BUY:
             self.cur_cash -= ((quantity * price) + commission)
-        elif action == ACTION_SLD:
+        elif action == Portfolio.ACTION_SELL:
             self.cur_cash += ((quantity * price) - commission)
 
         if ticker not in self.positions:

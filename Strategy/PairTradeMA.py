@@ -11,8 +11,8 @@ class PairTradeMA(TradeStrategy):
             log_handler
         )
  
-        self.operation    = LinePlot('Trade', self.out_folder)
-        self.equity_all   = LinePlot('Equity', self.out_folder)
+        self.operation  = LinePlot('Trade', self.out_folder)
+        self.equity_all = LinePlot('Equity', self.out_folder)
 
     def quote(self, event):    
         tickerA = self.ticker_list[0]
@@ -30,11 +30,15 @@ class PairTradeMA(TradeStrategy):
         if zscore[-1] > 2:
             print('@Sell')
             sell_price = priceA['close'][-1]
+            self.sell(tickerA, 1, sell_price)
             buy_price  = priceB['close'][-1]
+            self.buy(tickerB, 1, buy_price)
         elif zscore[-1] < -2:
             print('@Buy')
             buy_price  = priceA['close'][-1]
+            self.buy(tickerA, 1, buy_price)
             sell_price = priceB['close'][-1]
+            self.sell(tickerB, 1, sell_price)
         elif abs(zscore[-1]) < 0.5:
             pass
 

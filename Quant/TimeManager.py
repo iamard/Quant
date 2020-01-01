@@ -40,10 +40,15 @@ class TimeManager(metaclass = Singleton):
                                      datetime.timedelta(milliseconds = 1)):
                 moment = self.observer_list[0]
 
-                timestamp = self.current_time.strftime('%Y-%m-%d %H:%M')
-                self.log_handler.error(timestamp + ' @call ' + str(moment.observer))
+                self.log_handler.info(
+                    self.current_time.strftime('%Y-%m-%d %H:%M') + 
+                    ' @call ' + str(moment.observer)
+                )
                 moment.observer(self.current_time)
-                self.log_handler.error(timestamp + ' @done ' + str(moment.observer))
+                self.log_handler.info(
+                    self.current_time.strftime('%Y-%m-%d %H:%M') + 
+                    ' @done ' + str(moment.observer)
+                )
 
                 if moment.is_periodic():
                     moment.advance()

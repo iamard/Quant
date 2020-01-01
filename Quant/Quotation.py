@@ -28,14 +28,19 @@ class Quotation(EventQueue):
 
         event_data = {}
         for ticker_id in self.ticker_list:
-            frame_data = self.price_frame[ticker_id]
-            frame_data = frame_data[(frame_data.index.date > start_date) & \
-                                    (frame_data.index.date < end_date)]
-            frame_data = frame_data.dropna()
-            
-            if frame_data.empty == False:
-                frame_data = frame_data[-self.look_back:]
-                event_data[ticker_id] = frame_data
+            try:
+                frame_data = self.price_frame[ticker_id]
+                end_index  = frame_data.index.get_loc(end_date)
+                frame_data = frame_data.iloc[end_index - self.look_back: end_index]
+            except KeyError:
+                # Should not a trade date
+                return
+
+            # No trade data available
+            if frame_data.empty == True:
+                return
+
+            event_data[ticker_id] = frame_data
         
         if len(event_data) > 0:
             self.submit(BarEvent(time, event_data))

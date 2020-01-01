@@ -59,11 +59,11 @@ if __name__ == '__main__':
         with open('back_tester.yaml', 'r') as stream:
             print('Load config file')
             config  = yaml.load(stream)
-            print('Create back test object')
+            print('Create test object')
             back_tester = BackTester(config)
-            print('Start back test cases')
+            print('Start test cases')
             back_tester.start()
-            print('Back test cases done')
+            print('Test cases finish')
     except Exception as e:
         print(traceback.format_exception(*sys.exc_info()))
     finally:

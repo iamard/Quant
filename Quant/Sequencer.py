@@ -64,7 +64,12 @@ class Sequencer(metaclass = Singleton):
         self.event_thread.start()
 
     def stop(self):
+        self.event_lock.acquire()
+        while self.event_queue.empty() == False:
+            self.event_queue.get()
         self.event_queue.put(None)
+        self.event_lock.release()
+
         self.event_thread.join()
 
     def free(self):

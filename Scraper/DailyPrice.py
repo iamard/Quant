@@ -86,7 +86,7 @@ class DailyPrice(Scraper):
                                       "adj_close": adjclose,
                                       "volume": volumes})
 
-            frame.index = pandas.to_datetime(timestamps, unit = "s")
+            frame.index = pandas.to_datetime(timestamps, unit = 's')
             frame.sort_index(inplace = True, ascending = True)
             
             frame = numpy.round(frame, data["chart"]["result"][0]["meta"]["priceHint"])
@@ -96,7 +96,7 @@ class DailyPrice(Scraper):
             frame.index = frame.index.tz_localize("UTC").tz_convert( \
                 data["chart"]["result"][0]["meta"]["exchangeTimezoneName"])
             
-            frame.index = pandas.to_datetime(frame.index)
+            frame.index = pandas.to_datetime(frame.index.date, format = '%Y-%m-%d')
             frame.index.name = "date"
         except:
             logger.error('Scraping ' + ticker_id + ' price failed!')
@@ -111,13 +111,18 @@ class DailyPrice(Scraper):
         #frame = frame.set_index('date')
 
         return (ticker_id, frame)
-        
+    
+    async def quote_price_start(self, tasks):
+        result = await asyncio.gather(*tasks)
+        return result
+    
     def quote_daily_price(self, ticker_list, start_date, end_date, \
             logger, refresh = False, dump = 'csv', retry = 1):
 
-        if(isinstance(start_date, str) == True or \
-           isinstance(end_date, str) == True):
+        if isinstance(start_date, str) == True:
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        
+        if isinstance(end_date, str) == True:
             end_date   = datetime.strptime(end_date, '%Y-%m-%d')
 
         ticker_dict = TickerList().quote_ticker_list(logger, refresh = False)
@@ -155,7 +160,7 @@ class DailyPrice(Scraper):
                     
                     #frame_data[['date']] = frame_data[['date']].astype(object)
                     frame_data = frame_data.set_index('date')
-                    frame_data.index = pandas.to_datetime(frame_data.index)
+                    frame_data.index = pandas.to_datetime(frame_data.index, format = '%Y-%m-%d')
                 else:
                     #logger.error('Set frame data to None')
                     frame_data = None
@@ -179,19 +184,19 @@ class DailyPrice(Scraper):
                     else:
                         ticker_quote = ticker_id + '.two'
                 ticker_dict[ticker_quote] = ticker_id
-                task_list.append(asyncio.ensure_future(\
+                task_list.append(
                     self.quote_price_core(ticker_quote, \
                                           start_date, \
                                           end_date, \
                                           logger, \
                                           refresh, \
-                                          retry)))
-
+                                          retry)
+                )
+                
         if len(task_list) > 0:
-            event_loop   = asyncio.get_event_loop()
-            task_done, _ = event_loop.run_until_complete(asyncio.wait(task_list))
-            for curr_task in task_done:
-                ticker_quote, frame_data = curr_task.result()
+            task_result = asyncio.run(self.quote_price_start(task_list))
+            for task_data in task_result:
+                ticker_quote, frame_data = task_data
                 if dump == "csv":
                     output_name = self.out_path + "{}_daily_price.csv".format(ticker_id)
                 elif dump == "xlsx":
