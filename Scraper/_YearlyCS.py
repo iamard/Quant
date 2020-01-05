@@ -1,10 +1,10 @@
 # coding=utf-8
 
-from ._Scraper import Scraper
-from bs4 import BeautifulSoup
 import os as os
 import pandas as pandas
 import numpy as numpy
+from bs4 import BeautifulSoup
+from ._Scraper import Scraper
 
 class YearlyCS(Scraper):
     def __init__(self):

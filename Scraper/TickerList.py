@@ -1,12 +1,12 @@
 # coding=utf-8
 
-from .Scraper import Scraper
-from bs4 import BeautifulSoup
 import os as os
 import logging as logging
 import pandas as pandas
 import numpy as numpy
 import asyncio as asyncio
+from bs4 import BeautifulSoup
+from .Scraper import Scraper
 
 class TickerList(Scraper):
     def __init__(self):

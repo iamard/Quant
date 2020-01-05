@@ -1,11 +1,11 @@
 # coding=utf-8
 
-from .Scraper import Scraper
 from bs4 import BeautifulSoup
 from io import StringIO
 import os as os
 import pandas as pandas
 import numpy as numpy
+from .Scraper import Scraper
 
 class DailyRatio(Scraper):
     def __init__(self):

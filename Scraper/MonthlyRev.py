@@ -1,14 +1,14 @@
 # coding=utf-8
 
-from .Scraper import Scraper
-from bs4 import BeautifulSoup
-from dateutil.rrule import *
-from dateutil.relativedelta import *
 import os as os
 import math as math
 import logging as logging
 import asyncio as asyncio
 import pandas as pandas
+from bs4 import BeautifulSoup
+from dateutil.rrule import *
+from dateutil.relativedelta import *
+from .Scraper import Scraper
 
 class MonthlyRev(Scraper):
     def __init__(self):

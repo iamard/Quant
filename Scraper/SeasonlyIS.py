@@ -1,11 +1,11 @@
 # coding=utf-8
 
-from .Scraper import Scraper
-from bs4 import BeautifulSoup
 import os as os
 import pandas as pandas
 import numpy as numpy
 import logging as logging
+from bs4 import BeautifulSoup
+from .Scraper import Scraper
 
 class SeasonlyIS(Scraper):
     def __init__(self):

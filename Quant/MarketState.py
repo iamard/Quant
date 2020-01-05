@@ -3,28 +3,39 @@ from .TimeManager import *
 from .EventType import *
 from .EventQueue import *
 
-class MarketState(EventQueue):
+class MarketState:
     MARKET_OPEN  = EventBase.OPEN_EVENT
     MARKET_CLOSE = EventBase.CLOSE_EVENT
 
     def __init__(self, time_beat, log_handler):
-        EventQueue.__init__(self, log_handler)
-
-        self.time_beat  = time_beat
-        self.timer_lock = None
-        self.timer_list = []
+        self.time_beat   = time_beat
+        self.event_queue = None
+        self.timer_lock  = None
+        self.timer_list  = []
+        self.log_handler = log_handler
 
     def __time__(self, time):    
         if time.hour   == 8 and \
            time.minute == 0:
-            self.submit(OpenEvent(time))
+            self.event_queue.submit(OpenEvent(time))
         elif time.hour   == 16 and \
              time.minute == 0:
-            self.submit(CloseEvent(time))
+            self.event_queue.submit(CloseEvent(time))
 
-    def setup(self):
-        self.timer_lock = threading.RLock()
+    def attach(self, event_type, observer):
+        if event_type == self.MARKET_OPEN or \
+           event_type == self.MARKET_CLOSE:
+            self.event_queue.attach(event_type, observer)
+
+    def detach(self, event_type, observer):
+        if event_type == self.MARKET_OPEN or \
+           event_type == self.MARKET_CLOSE:
+            self.event_queue.detach(event_type, observer)
             
+    def setup(self):
+        self.event_queue = EventQueue(self.log_handler)
+        self.timer_lock  = threading.RLock()
+
     def start(self):
         curr_time = self.time_beat.time()
         open_time = datetime.datetime(year = curr_time.year,

@@ -1,8 +1,6 @@
 # coding=utf-8
 
-from .Scraper import Scraper
-from .TickerList import TickerList
-from datetime import datetime
+import datetime as datetime
 import os as os
 import logging as logging
 import pandas as pandas
@@ -10,6 +8,8 @@ import time as time
 import json as json
 import numpy as numpy
 import asyncio as asyncio
+from .Scraper import Scraper
+from .TickerList import TickerList
 
 class DailyPrice(Scraper):
     def __init__(self):
@@ -26,7 +26,7 @@ class DailyPrice(Scraper):
         end   = None
         if start_date is None:
             start = -2208988800
-        elif isinstance(start_date, datetime):
+        elif isinstance(start_date, datetime.datetime):
             start = int(time.mktime(start_date.timetuple()))
         elif isinstance(start_date, str):
             start = int(time.mktime(time.strptime(start_date, '%Y-%m-%d')))
@@ -36,7 +36,7 @@ class DailyPrice(Scraper):
         
         if end_date is None:
             end = int(time.time())
-        elif isinstance(end_date, datetime):
+        elif isinstance(end_date, datetime.datetime):
             end = int(time.mktime(end_date.timetuple()))
         elif isinstance(end_date, str):
             end = int(time.mktime(time.strptime(end_date, '%Y-%m-%d')))
@@ -120,10 +120,10 @@ class DailyPrice(Scraper):
             logger, refresh = False, dump = 'csv', retry = 1):
 
         if isinstance(start_date, str) == True:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         
         if isinstance(end_date, str) == True:
-            end_date   = datetime.strptime(end_date, '%Y-%m-%d')
+            end_date   = datetime.datetime.strptime(end_date, '%Y-%m-%d')
 
         ticker_dict = TickerList().quote_ticker_list(logger, refresh = False)
         ticker_dict = ticker_dict.to_dict('index')
@@ -149,11 +149,11 @@ class DailyPrice(Scraper):
                     frame_data = pandas.read_excel(output_name)
                 frame_data = frame_data.sort_values(by = ['date'], ascending = True)
 
-                min_date = datetime.strptime(frame_data.iloc[0]['date'].split(' ')[0], '%Y-%m-%d')
-                max_date = datetime.strptime(frame_data.iloc[-1]['date'].split(' ')[0], '%Y-%m-%d')
+                min_date = datetime.datetime.strptime(frame_data.iloc[0]['date'].split(' ')[0], '%Y-%m-%d')
+                max_date = datetime.datetime.strptime(frame_data.iloc[-1]['date'].split(' ')[0], '%Y-%m-%d')
                 if min_date <= start_date and end_date <= max_date:
-                    mask = (frame_data['date'] >= datetime.strftime(start_date, '%Y-%m-%d')) & \
-                           (frame_data['date'] <= datetime.strftime(end_date, '%Y-%m-%d'))
+                    mask = (frame_data['date'] >= datetime.datetime.strftime(start_date, '%Y-%m-%d')) & \
+                           (frame_data['date'] <= datetime.datetime.strftime(end_date, '%Y-%m-%d'))
                     frame_data = frame_data[mask]
                     frame_data[['open', 'high', 'low', 'close', 'adj_close', 'volume']]= \
                         frame_data[['open', 'high', 'low', 'close', 'adj_close', 'volume']].astype(float)

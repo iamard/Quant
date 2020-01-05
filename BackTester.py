@@ -21,8 +21,8 @@ class BackTester:
     
     def start(self):
         strategy_folder = 'Strategy'
-        for strategy in self.test_config:
-            strategy_name   = self.test_config[strategy]['name']
+        for test_name in self.test_config:
+            strategy_name   = self.test_config[test_name]['name']
             strategy_module = importlib.import_module(
                 strategy_folder + '.' + strategy_name, None
             )
@@ -30,7 +30,7 @@ class BackTester:
             if strategy_module is not None:
                 strategy_init = getattr(strategy_module, strategy_name)
                 self.strategies.append(strategy_init(
-                    strategy_name, self.test_config[strategy], self.log_handler)
+                    test_name, self.test_config[test_name], self.log_handler)
                 )
 
         process_list = []

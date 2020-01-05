@@ -1,14 +1,14 @@
 # coding=utf-8
 
-from Scraper import Scraper
-from bs4 import BeautifulSoup
-from datetime import datetime
-from dateutil.rrule import *
 import os as os
 import pandas as pandas
 import numpy as numpy
 import logging as logging
 import asyncio as asyncio
+import datetime as datetime
+from bs4 import BeautifulSoup
+from dateutil.rrule import *
+from Scraper import Scraper
 
 class SeasonlyBS(Scraper):
     def __init__(self):

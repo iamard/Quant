@@ -2,27 +2,38 @@ from .TimeManager import *
 from .EventType import *
 from .EventQueue import *
 
-class TradeMonitor(EventQueue):
+class TradeMonitor:
     TRADE_START = EventBase.START_EVENT
     TRADE_STOP  = EventBase.STOP_EVENT
 
     def __init__(self, time_beat, log_handler):
-        EventQueue.__init__(self, log_handler)
-
-        self.time_beat  = time_beat
-        self.start_time = time_beat.base()
-        self.end_time   = time_beat.end()
-        self.timer_lock = None
-        self.timer_list = []
+        self.time_beat   = time_beat
+        self.start_time  = time_beat.base()
+        self.end_time    = time_beat.end()
+        self.event_queue = None
+        self.timer_lock  = None
+        self.timer_list  = []
+        self.log_handler = log_handler
 
     def __time__(self, time):
         if time == self.start_time:
-            self.submit(StartEvent(time))
+            self.event_queue.submit(StartEvent(time))
         elif time == self.end_time:
-            self.submit(StopEvent(time))
+            self.event_queue.submit(StopEvent(time))
 
+    def attach(self, event_type, observer):
+        if event_type == self.TRADE_START or \
+           event_type == self.TRADE_STOP:
+            self.event_queue.attach(event_type, observer)
+
+    def detach(self, event_type, observer):
+        if event_type == self.TRADE_START or \
+           event_type == self.TRADE_STOP:
+            self.event_queue.detach(event_type, observer)
+            
     def setup(self):
-        self.timer_lock = threading.RLock()
+        self.event_queue = EventQueue(self.log_handler)
+        self.timer_lock  = threading.RLock()
             
     def start(self):
         start_timer = self.time_beat.attach(self.start_time,

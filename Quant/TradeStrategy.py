@@ -5,15 +5,13 @@ import traceback as traceback
 import signal as signal
 import datetime as datetime
 from .TimeManager import *
-from .Sequencer import *
 from .TradeMonitor import *
 from .MarketState import *
-from .Quotation import *
 from .TradeBroker import *
 
 class TradeStrategy:
-    def __init__(self, strategy_name, trade_config, log_handler):
-        self.out_folder  = os.path.join('Report', strategy_name)
+    def __init__(self, trade_name, trade_config, log_handler):
+        self.out_folder  = os.path.join('Report', trade_name)
         if not os.path.exists(self.out_folder):
             os.makedirs(self.out_folder)
     
@@ -22,11 +20,11 @@ class TradeStrategy:
 
         start_time = trade_config['start']
         if isinstance(start_time, str) == True: \
-            start_time = datetime.strptime(start_time, "%Y-%m-%d %H:%M")
+            start_time = datetime.datetime.strptime(start_time, "%Y-%m-%d %H:%M")
 
         end_time = trade_config['end']
         if isinstance(end_time, str) == True: \
-            end_time = datetime.strptime(end_time, "%Y-%m-%d %H:%M")
+            end_time = datetime.datetime.strptime(end_time, "%Y-%m-%d %H:%M")
 
         self.start_time    = start_time
         self.end_time      = end_time
@@ -35,8 +33,6 @@ class TradeStrategy:
         self.time_engine   = TimeManager(self.start_time,
                                          self.end_time,
                                          self.log_handler)
-        
-        self.sequencer     = Sequencer(self.log_handler)
 
         self.trade_monitor = TradeMonitor(self.time_engine,
                                           self.log_handler)
@@ -44,13 +40,10 @@ class TradeStrategy:
         self.market_state  = MarketState(self.time_engine,
                                          self.log_handler)
         
-        self.quote_engine  = Quotation(self.time_engine,
-                                       self.ticker_list,
-                                       trade_config['back'],
-                                       self.log_handler)
-        
         self.trade_broker  = TradeBroker(self.time_engine,
                                          trade_config['cash'],
+                                         trade_config.get('signal', {}),
+                                         trade_config['back'],
                                          self.log_handler)
                                         
     def begin(self, event):
@@ -109,24 +102,28 @@ class TradeStrategy:
 
             # Acquire resources
             self.time_engine.setup()
-            self.sequencer.setup()
             self.trade_monitor.setup()
             self.market_state.setup()
-            self.quote_engine.setup()
+            self.trade_broker.setup()
 
-            self.trade_monitor.attach(TradeMonitor.TRADE_START, self.__trade__)
-            self.trade_monitor.attach(TradeMonitor.TRADE_STOP, self.__trade__)
+            self.trade_monitor.attach(TradeMonitor.TRADE_START, 
+                                      self.__trade__)
+            self.trade_monitor.attach(TradeMonitor.TRADE_STOP, 
+                                      self.__trade__)
 
-            self.market_state.attach(MarketState.MARKET_OPEN, self.__market__)
-            self.market_state.attach(MarketState.MARKET_CLOSE, self.__market__)
+            self.market_state.attach(MarketState.MARKET_OPEN,
+                                     self.__market__)
+            self.market_state.attach(MarketState.MARKET_CLOSE, 
+                                     self.__market__)
 
-            self.quote_engine.attach(Quotation.BAR_DATA, self.__quote__)
+            self.trade_broker.attach(TradeBroker.BAR_DATA,
+                                     self.ticker_list,
+                                     self.__quote__)
 
             # Start each module
-            self.quote_engine.start()
+            self.trade_broker.start()
             self.market_state.start()
             self.trade_monitor.start()
-            self.sequencer.start()
             self.time_engine.start()
 
             # Wait all tasks done
@@ -135,28 +132,16 @@ class TradeStrategy:
             self.log_handler.error(traceback.format_exception(*sys.exc_info()))
         finally:
             # Stop each module
-            self.log_handler.error('Stopping time engine...')
             self.time_engine.stop()
-            self.log_handler.error('Stopping sequencer...')
-            self.sequencer.stop()
-            self.log_handler.error('Stopping trade monitor...')
             self.trade_monitor.stop()
-            self.log_handler.error('Stopping marker state...')
             self.market_state.stop()
-            self.log_handler.error('Stopping quote engine...')
-            self.quote_engine.stop()
+            self.trade_broker.stop()
 
             # Release resources
-            self.log_handler.error('Releasing time engine...')
             self.time_engine.free()
-            self.log_handler.error('Releasing sequencer...')
-            self.sequencer.free()
-            self.log_handler.error('Releasing trade monitor...')
             self.trade_monitor.free()
-            self.log_handler.error('Releasing marker state...')
             self.market_state.free()
-            self.log_handler.error('Releasing quote engine...')
-            self.quote_engine.free()
+            self.trade_broker.free()
         
     def stop(self):
         self.stop_event.set()

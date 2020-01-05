@@ -1,7 +1,17 @@
 test1:
-    name: PairTradeMA
+    name: StochStrategy
     start: '2007-01-01 8:00'
     end: '2012-12-01 8:00'
-    ticker: [ 'ADBE', 'MSFT' ]
+    ticker: [ '0050.tw' ]
     back: 60
     cash: 300000
+    signal: {'stoch': {'fastk_period': 9, 'slowk_period': 3, 'slowd_period': 3}}
+
+test2:
+    name: RSIStrategy
+    start: '2007-01-01 8:00'
+    end: '2012-12-01 8:00'
+    ticker: [ '0050.tw' ]
+    back: 60
+    cash: 300000
+    signal: {'rsi': [6, 24]}

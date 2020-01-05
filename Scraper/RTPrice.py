@@ -1,13 +1,13 @@
 # coding=utf-8
 
-from .Scraper import Scraper
-from .TickerList import TickerList
-from datetime import datetime
+import datetime as datetime
 import logging as logging
 import numpy as numpy
 import json as json
 import pandas as pandas
 import time as time
+from .Scraper import Scraper
+from .TickerList import TickerList
 
 class RTPrice(Scraper):
     def __init__(self):
