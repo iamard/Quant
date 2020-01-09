@@ -1,6 +1,7 @@
 import multiprocessing as mp
 import os as os
 import sys as sys
+import logging as logging
 import traceback as traceback
 import signal as signal
 import datetime as datetime
@@ -10,11 +11,16 @@ from .MarketState import *
 from .TradeBroker import *
 
 class TradeStrategy:
-    def __init__(self, trade_name, trade_config, log_handler):
+    def __init__(self, trade_name, trade_config):
         self.out_folder  = os.path.join('Report', trade_name)
         if not os.path.exists(self.out_folder):
             os.makedirs(self.out_folder)
-    
+
+        self.trade_name  = trade_name
+            
+        # Setup log and file handlers
+        logging.basicConfig(level = logging.NOTSET)
+        self.log_handler = logging.getLogger(trade_name)
         self.stop_event  = mp.Event()    
         self.ticker_list = trade_config['ticker']
 
@@ -28,21 +34,28 @@ class TradeStrategy:
 
         self.start_time    = start_time
         self.end_time      = end_time
-        self.log_handler   = log_handler
+        
+        
         
         self.time_engine   = TimeManager(self.start_time,
                                          self.end_time,
                                          self.log_handler)
 
+        self.data_source   = DataSource(self.time_engine,
+                                        trade_config.get('signal', {}),
+                                        trade_config['back'],
+                                        self.log_handler)
+
         self.trade_monitor = TradeMonitor(self.time_engine,
                                           self.log_handler)
 
         self.market_state  = MarketState(self.time_engine,
+                                         self.data_source,
                                          self.log_handler)
         
         self.trade_broker  = TradeBroker(self.time_engine,
+                                         self.data_source,
                                          trade_config['cash'],
-                                         trade_config.get('signal', {}),
                                          trade_config['back'],
                                          self.log_handler)
                                         
@@ -53,13 +66,13 @@ class TradeStrategy:
         pass
                                         
     def __trade__(self, event):
-        if isinstance(event, StopEvent) == True:
-            self.stop()
+        if isinstance(event, StartEvent) == True:
+            self.begin(event)
+        elif isinstance(event, StopEvent) == True:
             self.term(event)
+            self.stop()
 
     def __market__(self, event):
-        self.trade_broker.update() 
-
         if isinstance(event, OpenEvent) == True:
             self.open(event)
         elif isinstance(event, PauseEvent) == True:
@@ -100,6 +113,16 @@ class TradeStrategy:
             signal.signal(signal.SIGTERM, signal.SIG_IGN)
             signal.signal(signal.SIGINT, signal.SIG_IGN)
 
+            output_file   = os.path.join(self.out_folder, self.trade_name + '.log')
+            file_handler  = logging.FileHandler(output_file)
+            file_handler.setLevel(logging.INFO)
+            log_formatter = logging.Formatter(
+                           fmt = '%(asctime)s %(levelname)s: %(message)s',
+                           datefmt = '%Y-%m-%d %H:%M:%S'
+                        )
+            file_handler.setFormatter(log_formatter)
+            self.log_handler.addHandler(file_handler)
+            
             # Acquire resources
             self.time_engine.setup()
             self.trade_monitor.setup()
@@ -142,6 +165,8 @@ class TradeStrategy:
             self.trade_monitor.free()
             self.market_state.free()
             self.trade_broker.free()
+        
+            self.log_handler.handlers.clear()
         
     def stop(self):
         self.stop_event.set()

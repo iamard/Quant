@@ -1,19 +1,8 @@
 from numpy import sign
-from Scraper.DataQuoter import *
 
 # The core codes are from the following path
 # https://github.com/quantstart/qstrader/tree/master/qstrader
 # Still need time to develop codes for a real broker
-
-class PriceQuoter:
-    def is_tick(self):
-        return False
-
-    def best_bid_ask(self, ticker):
-        pass
-
-    def close(self, ticker):
-        pass
 
 class Position(object):
     def __init__(self, action, ticker, quantity, price, commission, bid, ask):

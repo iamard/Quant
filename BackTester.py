@@ -30,7 +30,7 @@ class BackTester:
             if strategy_module is not None:
                 strategy_init = getattr(strategy_module, strategy_name)
                 self.strategies.append(strategy_init(
-                    test_name, self.test_config[test_name], self.log_handler)
+                    test_name, self.test_config[test_name])
                 )
 
         process_list = []

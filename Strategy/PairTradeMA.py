@@ -3,14 +3,13 @@ from Quant.TradeStrategy import *
 from Plotter.LinePlot import *
 
 class PairTradeMA(TradeStrategy):
-    def __init__(self, strategy_name, trade_config, log_handler):
+    def __init__(self, trade_name, trade_config):
         # Initialize super class
         super().__init__(
-            strategy_name,
+            trade_name,
             trade_config,
-            log_handler
         )
- 
+
         self.operation  = LinePlot('Trade', self.out_folder)
         self.equity_all = LinePlot('Equity', self.out_folder)
 

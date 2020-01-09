@@ -3,17 +3,15 @@ from Quant.TradeStrategy import *
 from Plotter.LinePlot import *
 
 class RSIStrategy(TradeStrategy):
-    def __init__(self, strategy_name, trade_config, log_handler):
+    def __init__(self, trade_name, trade_config):
         # Initialize super class
         super().__init__(
-            strategy_name,
-            trade_config,
-            log_handler
+            trade_name,
+            trade_config
         )
  
         self.operation   = LinePlot('Trade', self.out_folder)
         self.equity_all  = LinePlot('Equity', self.out_folder)
-        self.log_handler = log_handler
 
     def quote(self, event):
         ticker_id  = self.ticker_list[0]

@@ -7,14 +7,20 @@ class MarketState:
     MARKET_OPEN  = EventBase.OPEN_EVENT
     MARKET_CLOSE = EventBase.CLOSE_EVENT
 
-    def __init__(self, time_beat, log_handler):
+    def __init__(self, time_beat, data_source, log_handler):
         self.time_beat   = time_beat
+        self.data_source = data_source
         self.event_queue = None
         self.timer_lock  = None
         self.timer_list  = []
         self.log_handler = log_handler
 
-    def __time__(self, time):    
+    def __time__(self, time):
+        curr_date = time.date()
+        if self.data_source.trade(curr_date) == False:
+            self.log_handler.info('Not a trading date', curr_date)
+            return
+    
         if time.hour   == 8 and \
            time.minute == 0:
             self.event_queue.submit(OpenEvent(time))

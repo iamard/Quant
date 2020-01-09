@@ -102,7 +102,7 @@ class STOCHDataFeed(DataDecorator):
 
         return output
 
-class BBANDDataFeed(DataDecorator):
+class BBandDataFeed(DataDecorator):
     def __init__(self, previous, options = {'time_period': 10, 
             'nbdevup': 2, 'nbdevdn': 2}):
         super().__init__(previous)
@@ -123,7 +123,7 @@ class BBANDDataFeed(DataDecorator):
                                   index = frame.index)
         return output
 
-class RSIAnalyzer(DataDecorator):
+class RSIDataFeed(DataDecorator):
     def __init__(self, previous, periods = [6, 24]):
         super().__init__(previous)
         self.periods = periods
@@ -146,7 +146,7 @@ class DataFeedFactory():
         if option_dict.get('stoch', None) != None:
             data_feed = STOCHDataFeed(data_feed, option_dict.get('stoch'))
         if option_dict.get('bband', None) != None:
-            data_feed = BBANDDataFeed(data_feed, option_dict.get('bband'))
+            data_feed = BBandDataFeed(data_feed, option_dict.get('bband'))
         if option_dict.get('rsi', None) != None:
-            data_feed = RSIAnalyzer(data_feed, option_dict.get('rsi'))
+            data_feed = RSIDataFeed(data_feed, option_dict.get('rsi'))
         return data_feed

@@ -3,11 +3,11 @@ from Quant.TradeStrategy import *
 from Plotter.LinePlot import *
 
 class PairTradePCT(TradeStrategy):
-    def __init__(self, trade_config, log_handler):
+    def __init__(self, trade_name, trade_config):
         # Initialize super class
         super().__init__(
-            trade_config,
-            log_handler
+            trade_name,
+            trade_config
         )
 
         self.z_signal_in  = st.norm.ppf(1 - 0.05 / 2)   # z-score threshold to open an order
