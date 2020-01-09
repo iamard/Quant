@@ -114,8 +114,8 @@ class Position(object):
         # Adjust average price and cost basis
         self.cost_basis = self.quantity * self.avg_price
 
-    def quantity(self):
-        return net_total;
+    def net_count(self):
+        return self.quantity;
         
 class Portfolio:
     ACTION_BUY  = "BOT"
@@ -195,23 +195,23 @@ class Portfolio:
                 "Could not modify a current position." % ticker
             )
 
-    def transact(self, action, ticker, quantity, price, commission):
+    def transact(self, action, ticker_id, quantity, price, commission):
         if action == Portfolio.ACTION_BUY:
             self.cur_cash -= ((quantity * price) + commission)
         elif action == Portfolio.ACTION_SELL:
             self.cur_cash += ((quantity * price) - commission)
 
-        if ticker not in self.positions:
-            self.__add__(action, ticker, quantity, price, commission)
+        if ticker_id not in self.positions:
+            self.__add__(action, ticker_id, quantity, price, commission)
         else:
-            self.__modify__(action, ticker, quantity, price, commission)
+            self.__modify__(action, ticker_id, quantity, price, commission)
 
-    def quantity(self, ticker):
-        position = self.positions.get(ticker, None)
+    def quantity(self, ticker_id):
+        position = self.positions.get(ticker_id, None)
         if position is None:
             return 0
         else:
-            return position.quantity()
+            return position.net_count()
     
     def update(self):
         self.__update__()

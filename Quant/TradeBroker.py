@@ -113,7 +113,7 @@ class TradeBroker:
     
     def sell(self, ticker_id, quantity, price):
         if price > self.data_quoter.high(ticker_id) or \
-           self.portfolio.quantity() < quantity:
+           self.portfolio.quantity(ticker_id) < quantity:
             return
 
         return self.portfolio.transact(Portfolio.ACTION_SELL,
