@@ -1,17 +1,16 @@
 from datetime import timedelta
 import talib as talib
+import numpy as numpy
 import pandas as pandas
 from Scraper.DataQuoter import *
 
 class DataFeed:
-    def __init__(self, start_date, end_date, log_handler):
+    def __init__(self, log_handler):
         self.data_quoter = DataQuoter(log_handler)
         self.price_data  = {}
-        self.start_date  = start_date
-        self.end_date    = end_date
         self.log_handler = log_handler
 
-    def quote(self, ticker_list):
+    def quote(self, ticker_list, start_date, end_date):
         quote_list = []
         for ticker_id in ticker_list:
             price_data = self.price_data.get(ticker_id, None)
@@ -20,8 +19,8 @@ class DataFeed:
 
         if len(quote_list) > 0:
             price_data = self.data_quoter.price(ticker_list,
-                                                self.start_date,
-                                                self.end_date)
+                                                start_date,
+                                                end_date)
             if price_data is None:
                 return None
             self.price_data.update(price_data)
@@ -41,11 +40,11 @@ class DataDecorator:
     def signal(self):
         pass
       
-    def quote(self, ticker_list):
-        frame  = self.decorated.quote(ticker_list)
+    def quote(self, ticker_list, start_date, end_date):
+        frame  = self.decorated.quote(ticker_list, start_date, end_date)
         output = {}
         for key, data in frame.items():
-            extra = self.signal(frame[key], ticker_list)
+            extra = self.signal(frame[key])
             extra = pandas.concat([frame[key], extra], axis = 1, sort = False)
 
             # Save the augmented frame
@@ -58,7 +57,7 @@ class SMADataFeed(DataDecorator):
         super().__init__(previous)
         self.periods = periods
 
-    def signal(self, frame, ticker_list):
+    def signal(self, frame):
         output = {}
         for period in self.periods:
             output['SMA' + str(period)] = talib.MA(frame['adj_close'], period)
@@ -72,7 +71,7 @@ class MACDDataFeed(DataDecorator):
         super().__init__(previous)
         self.options = options
 
-    def signal(self, frame, ticker_list):
+    def signal(self, frame):
         dif, dea, macd = talib.MACD(frame['adj_close'],
                                     fastperiod = self.options['fast_period'],
                                     slowperiod = self.options['slow_period'],
@@ -88,7 +87,7 @@ class STOCHDataFeed(DataDecorator):
         super().__init__(previous)
         self.options = options
 
-    def signal(self, frame, ticker_list):
+    def signal(self, frame):
         slowk, slowd = talib.STOCH(frame['high'],
                                    frame['low'],
                                    frame['close'],
@@ -108,7 +107,7 @@ class BBandDataFeed(DataDecorator):
         super().__init__(previous)
         self.options = options
 
-    def signal(self, frame, ticker_list):
+    def signal(self, frame):
         upper, middle, lower = talib.BBANDS(frame['adj_close'], 
                                             timeperiod = self.options['time_period'],
                                             nbdevup = self.options['nbdevup'],
@@ -128,25 +127,43 @@ class RSIDataFeed(DataDecorator):
         super().__init__(previous)
         self.periods = periods
 
-    def signal(self, frame, ticker_list):
+    def signal(self, frame):
         output = {}
         for period in self.periods:
             output['RSI' + str(period)] = talib.RSI(frame['adj_close'], period)
         output = pandas.DataFrame(output, index = frame.index)
         return output
-        
+
+class ATRDataFeed(DataDecorator):
+    def __init__(self, previous, period = 14):
+        super().__init__(previous)
+        self.period = period
+
+    def signal(self, frame):
+        output = {}
+        output['ATR' + str(self.period)] = numpy.array(
+            talib.ATR(frame['high'].values,
+                      frame['low'].values, 
+                      frame['close'].values,
+                      timeperiod = self.period)
+        )
+        output = pandas.DataFrame(output, index = frame.index)
+        return output
+
 class DataFeedFactory():
     @classmethod
-    def create(self, option_dict, start_date, end_date, log_handler):
-        data_feed = DataFeed(start_date, end_date, log_handler)
-        if option_dict.get('sma', None) != None:
+    def create(self, option_dict, log_handler):
+        data_feed = DataFeed(log_handler)
+        if option_dict.get('sma', None) is not None:
             data_feed = SMADataFeed(data_feed, option_dict.get('sma'))
-        if option_dict.get('macd', None) != None:
+        if option_dict.get('macd', None) is not None:
             data_feed = MACDDataFeed(data_feed, option_dict.get('macd'))
-        if option_dict.get('stoch', None) != None:
+        if option_dict.get('stoch', None) is not None:
             data_feed = STOCHDataFeed(data_feed, option_dict.get('stoch'))
-        if option_dict.get('bband', None) != None:
+        if option_dict.get('bband', None) is not None:
             data_feed = BBandDataFeed(data_feed, option_dict.get('bband'))
-        if option_dict.get('rsi', None) != None:
+        if option_dict.get('rsi', None) is not None:
             data_feed = RSIDataFeed(data_feed, option_dict.get('rsi'))
+        if option_dict.get('atr', None) is not None:
+            data_feed = ATRDataFeed(data_feed, option_dict.get('atr'))
         return data_feed

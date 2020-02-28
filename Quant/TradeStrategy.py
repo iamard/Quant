@@ -5,6 +5,7 @@ import logging as logging
 import traceback as traceback
 import signal as signal
 import datetime as datetime
+from .TradeMetric import *
 from .TimeManager import *
 from .TradeMonitor import *
 from .MarketState import *
@@ -34,9 +35,7 @@ class TradeStrategy:
 
         self.start_time    = start_time
         self.end_time      = end_time
-        
-        
-        
+
         self.time_engine   = TimeManager(self.start_time,
                                          self.end_time,
                                          self.log_handler)
@@ -58,6 +57,11 @@ class TradeStrategy:
                                          trade_config['cash'],
                                          trade_config['back'],
                                          self.log_handler)
+        
+        self.trade_metric  = TradeMetric('0050.tw',
+                                         252,
+                                         self.out_folder,
+                                         self.log_handler)
                                         
     def begin(self, event):
         pass
@@ -66,13 +70,24 @@ class TradeStrategy:
         pass
                                         
     def __trade__(self, event):
+        if isinstance(event, StopEvent) == True:
+            print(event.time)
+            self.trade_metric.metric()
+
         if isinstance(event, StartEvent) == True:
             self.begin(event)
         elif isinstance(event, StopEvent) == True:
             self.term(event)
             self.stop()
+        else:
+            raise TypeError("Unsupported trade event type")
 
     def __market__(self, event):
+        if isinstance(event, CloseEvent) == True:
+            self.trade_metric.record(
+                event.time, self.trade_broker.equity()
+            )
+
         if isinstance(event, OpenEvent) == True:
             self.open(event)
         elif isinstance(event, PauseEvent) == True:

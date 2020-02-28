@@ -10,8 +10,7 @@ class StochStrategy(TradeStrategy):
             trade_config
         )
  
-        self.operation   = LinePlot('Trade', self.out_folder)
-        self.equity_all  = LinePlot('Equity', self.out_folder)
+        self.operation = LinePlot('Trade', self.out_folder)
 
     def quote(self, event):
         ticker_id  = self.ticker_list[0]
@@ -39,17 +38,10 @@ class StochStrategy(TradeStrategy):
                             ticker_id: price_val,
                             'buy': buy_price,
                             'sell': sell_price})
-        
-        self.equity_all.add({"time": event.event_time,
-                             "equity": self.trade_broker.equity()})
 
     def term(self, event):
-        self.operation.plot(x_axis = 'time',
+        self.operation.plot(title = 'test',
+                            x_axis = 'time',
                             color = ['b', 'r', 'g'],
                             style = ['-', 'None', 'None'],
                             marker = ['None', '^', '^'])
-
-        self.equity_all.plot(x_axis = 'time',
-                             color = ['b'],
-                             style = ['-'],
-                             marker = ['None'])

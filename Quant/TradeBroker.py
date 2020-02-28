@@ -14,10 +14,9 @@ class DataSource:
         self.price_data  = {}
         self.data_feed   = DataFeedFactory.create(
             signal_dict,
-            self.time_beat.base() - datetime.timedelta(days = look_back + 30),
-            time_beat.end(),
             log_handler)
         self.trade_date  = None
+        self.look_back   = look_back
         self.log_handler = log_handler
 
     def is_tick(self):
@@ -26,12 +25,10 @@ class DataSource:
     def __query__(self, ticker_id):
         price_data  = self.quote([ticker_id])[ticker_id]
         curr_time   = self.time_beat.time()
-
-        index_value = price_data.index.get_loc(curr_time, method = 'nearest')
-        if price_data.index[index_value] > curr_time:
-            self.log_handler.error(
-                'Time inversion on ' + price_data.index[index_value].date().strftime('%Y-%m-%d')
-            )
+        curr_date   = curr_time.date()
+        index_value = price_data.index.get_loc(curr_date, method = 'nearest')
+        if price_data.index[index_value].date() > curr_time.date():
+            self.log_handler.error('time inversion')
 
         return price_data.iloc[index_value]
 
@@ -49,7 +46,11 @@ class DataSource:
                 quote_list.append(ticker_id)
 
         if len(quote_list) > 0:
-            price_data = self.data_feed.quote(quote_list)
+            price_data = self.data_feed.quote(
+                quote_list,
+                self.time_beat.base() - datetime.timedelta(days = self.look_back + 30),
+                self.time_beat.end()
+            )
             self.price_data.update(price_data)
             for ticker_id in quote_list:
                 if self.trade_date is None:

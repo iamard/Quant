@@ -14,7 +14,7 @@ test2:
     ticker: [ '0050.tw' ]
     back: 60
     cash: 300000
-    signal: {'rsi': [6, 24]}
+    signal: {'rsi': [6, 24], 'atr': 14}
 
 test3:
     name: BBandStrategy

@@ -1,8 +1,10 @@
 import os as os
+import numpy as np
 import pandas as pandas
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 class LinePlot:
     def __init__(self, plot_name, out_folder):
@@ -13,15 +15,22 @@ class LinePlot:
     def add(self, record):
         self.raw_data = self.raw_data.append(record, ignore_index = True)
 
-    def plot(self, x_axis, color, style, marker):
+    def set(self, data):
+        self.raw_data = data
+
+    def data(self):
+        return self.raw_data
+
+    def plot(self, title, x_axis, color, style, marker):
         #pandas.plotting.register_matplotlib_converters()
         
         self.raw_data.sort_values(by = x_axis)
         self.raw_data.set_index(x_axis, inplace = True)
 
         plt.figure()
-        plt.xticks(rotation = 45)
-
+        fig, ax = plt.subplots()
+        #plt.xticks(rotation = 45)
+        
         color_it = iter(color)
         style_it = iter(style)
         marker_it = iter(marker)
@@ -33,9 +42,11 @@ class LinePlot:
                 marker = next(marker_it)
             )
 
-        plt.title(self.plot_name)
+        plt.title(title)
         plt.legend(self.raw_data.columns)
-        
+
+        fig.autofmt_xdate()
+ 
         file = os.path.join(self.out_folder, self.plot_name + '.png')
         plt.savefig(file, bbox_inches = "tight")
         plt.close()
