@@ -49,6 +49,13 @@ class BackTester:
             for process in process_list:
                 process.join()
 
+            for strategy in self.strategies:
+                if strategy.error() is not None:
+                    error, stack = strategy.error()
+                    self.log_handler.error(error)
+                    self.log_handler.error(stack)
+                    
+                
     def stop(self):
         for strategy in self.strategies:
             strategy.stop()

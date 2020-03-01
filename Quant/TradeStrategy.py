@@ -18,7 +18,11 @@ class TradeStrategy:
             os.makedirs(self.out_folder)
 
         self.trade_name  = trade_name
-            
+
+        # Create exception pipe
+        self.parent_conn, self.child_conn = mp.Pipe()
+        self.error_tuple = None
+        
         # Setup log and file handlers
         logging.basicConfig(level = logging.NOTSET)
         self.log_handler = logging.getLogger(trade_name)
@@ -36,7 +40,8 @@ class TradeStrategy:
         self.start_time    = start_time
         self.end_time      = end_time
 
-        self.time_engine   = TimeManager(self.start_time,
+        self.time_engine   = TimeManager(self,
+                                         self.start_time,
                                          self.end_time,
                                          self.log_handler)
 
@@ -71,7 +76,6 @@ class TradeStrategy:
                                         
     def __trade__(self, event):
         if isinstance(event, StopEvent) == True:
-            print(event.time)
             self.trade_metric.metric()
 
         if isinstance(event, StartEvent) == True:
@@ -166,8 +170,9 @@ class TradeStrategy:
 
             # Wait all tasks done
             self.stop_event.wait()
-        except:
-            self.log_handler.error(traceback.format_exception(*sys.exc_info()))
+        except Exception as exception:
+            trace_back = traceback.format_exception(*sys.exc_info())
+            self.notify((exception, trace_back))
         finally:
             # Stop each module
             self.time_engine.stop()
@@ -182,6 +187,15 @@ class TradeStrategy:
             self.trade_broker.free()
         
             self.log_handler.handlers.clear()
-        
+
+    def notify(self, error):
+        self.child_conn.send((exception, trace))
+        self.stop_event.set()
+
+    def error(self):
+        if self.parent_conn.poll():
+            self.error_tuple = self.parent_conn.recv()
+        return self.error_tuple
+
     def stop(self):
         self.stop_event.set()

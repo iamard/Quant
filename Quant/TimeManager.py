@@ -22,7 +22,8 @@ class TimerTask:
         return self.next_time
         
 class TimeManager(metaclass = Singleton):
-    def __init__(self, start_time, end_time, log_handler):
+    def __init__(self, cur_strategy, start_time, end_time, log_handler):
+        self.cur_strategy  = cur_strategy
         self.start_time    = start_time
         self.current_time  = start_time
         self.end_time      = end_time
@@ -54,8 +55,9 @@ class TimeManager(metaclass = Singleton):
                     moment.advance()
                 else:
                     self.observer_list = self.observer_list[1:]
-        except:
-            self.log_handler.error(traceback.format_exception(*sys.exc_info()))
+        except Exception as exception:
+            trace_back = traceback.format_exception(*sys.exc_info())
+            self.cur_strategy.notify((exception, trace_back))
         finally:
             self.timer_lock.release()
 
