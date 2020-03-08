@@ -6,7 +6,8 @@ test1:
     back: 60
     cash: 300000
     signal: {'stoch': {'fastk_period': 9, 'slowk_period': 3, 'slowd_period': 3}}
-
+    benchmark: [ '0050.tw' ]
+    
 test2:
     name: RSIStrategy
     start: '2007-01-01 8:00'
@@ -15,6 +16,7 @@ test2:
     back: 60
     cash: 300000
     signal: {'rsi': [6, 24], 'atr': 14}
+    benchmark: [ '0050.tw' ]
 
 test3:
     name: BBandStrategy
@@ -24,3 +26,4 @@ test3:
     back: 60
     cash: 300000
     signal: {'bband': {'time_period': 10, 'nbdevup': 2, 'nbdevdn': 2}}
+    benchmark: [ '0050.tw' ]

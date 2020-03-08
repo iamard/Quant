@@ -6,6 +6,7 @@ import multiprocessing as mp
 import logging as logging
 import traceback as traceback
 import signal as signal
+import pandas as pd
 
 class BackTester:
     def __init__(self, config):
@@ -49,13 +50,20 @@ class BackTester:
             for process in process_list:
                 process.join()
 
+            score = {}
             for strategy in self.strategies:
                 if strategy.error() is not None:
                     error, stack = strategy.error()
                     self.log_handler.error(error)
                     self.log_handler.error(stack)
+                else:
+                    name   = strategy.name()
+                    metric = strategy.metric()
+                    score[name] = metric
+            
+            score = pd.DataFrame.from_dict(score)
+            score.to_csv('back_tester.csv', encoding = 'cp950')
                     
-                
     def stop(self):
         for strategy in self.strategies:
             strategy.stop()

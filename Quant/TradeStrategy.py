@@ -22,6 +22,10 @@ class TradeStrategy:
         # Create exception pipe
         self.parent_conn, self.child_conn = mp.Pipe()
         self.error_tuple = None
+
+        # Create metric score pipe
+        self.parent_score, self.child_score = mp.Pipe()
+        self.metric_score = None
         
         # Setup log and file handlers
         logging.basicConfig(level = logging.NOTSET)
@@ -63,11 +67,14 @@ class TradeStrategy:
                                          trade_config['back'],
                                          self.log_handler)
         
-        self.trade_metric  = TradeMetric('0050.tw',
+        self.trade_metric  = TradeMetric(trade_config['benchmark'],
                                          252,
                                          self.out_folder,
                                          self.log_handler)
                                         
+    def name(self):
+        return self.trade_name
+    
     def begin(self, event):
         pass
                                         
@@ -76,7 +83,8 @@ class TradeStrategy:
                                         
     def __trade__(self, event):
         if isinstance(event, StopEvent) == True:
-            self.trade_metric.metric()
+            score = self.trade_metric.metric()
+            self.child_score.send(score)
 
         if isinstance(event, StartEvent) == True:
             self.begin(event)
@@ -197,5 +205,10 @@ class TradeStrategy:
             self.error_tuple = self.parent_conn.recv()
         return self.error_tuple
 
+    def metric(self):
+        if self.parent_score.poll():
+            self.metric_score = self.parent_score.recv()
+        return self.metric_score
+        
     def stop(self):
         self.stop_event.set()

@@ -13,7 +13,7 @@ class SharpeRatio:
         std_value     = np.std(return_series)
         if std_value  == 0.0:
             std_value = 1
-        trade_metric['sharpe'] = np.sqrt(self.period) * mean_value / std_value
+        trade_metric['sharpe'] = round(np.sqrt(self.period) * mean_value / std_value, 3)
 
 class MaxDrawDown:
     def __init__(self):
@@ -34,8 +34,9 @@ class MaxDrawDown:
             start_index = np.argmax(return_series.values[: end_index])
  
         # Record MDD metrics
-        trade_metric['MDD ratio']  = abs(
-            100.0 * (return_series[end_index] - return_series[start_index])
+        trade_metric['MDD ratio']  = round(
+            abs(100.0 * (return_series[end_index] - return_series[start_index])),
+            3
         )
         trade_metric['MDD start']  = trade_return['date'].iloc[start_index].strftime('%Y-%m-%d')
         trade_metric['MDD end']    = trade_return['date'].iloc[end_index].strftime('%Y-%m-%d')
@@ -104,9 +105,9 @@ class TradeMetric:
         trade_return = pd.merge(trade_return, price_frame, on = 'date')
 
         # Plot return figure
-        sharpe    = 'Sharpe: {}'.format(round(self.trade_metric['sharpe'], 3))
+        sharpe    = 'Sharpe: {}'.format(self.trade_metric['sharpe'])
         draw_down = 'MDD ratio/start/end/period: {}%/{}/{}/{}'.format(
-            round(self.trade_metric['MDD ratio'], 3),
+            self.trade_metric['MDD ratio'],
             self.trade_metric['MDD start'],
             self.trade_metric['MDD end'],
             self.trade_metric['MDD period'],
