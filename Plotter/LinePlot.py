@@ -22,6 +22,9 @@ class LinePlot:
         return self.raw_data
 
     def plot(self, title, x_axis, color, style, marker):
+        if self.raw_data.empty == True:
+            return
+    
         #pandas.plotting.register_matplotlib_converters()
         
         self.raw_data.sort_values(by = x_axis)

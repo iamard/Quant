@@ -13,7 +13,7 @@ class SharpeRatio:
         std_value     = np.std(return_series)
         if std_value  == 0.0:
             std_value = 1
-        trade_metric['sharpe'] = round(np.sqrt(self.period) * mean_value / std_value, 3)
+        trade_metric['Sharpe'] = round(np.sqrt(self.period) * mean_value / std_value, 3)
 
 class MaxDrawDown:
     def __init__(self):
@@ -105,7 +105,7 @@ class TradeMetric:
         trade_return = pd.merge(trade_return, price_frame, on = 'date')
 
         # Plot return figure
-        sharpe    = 'Sharpe: {}'.format(self.trade_metric['sharpe'])
+        sharpe    = 'Sharpe: {}'.format(self.trade_metric['Sharpe'])
         draw_down = 'MDD ratio/start/end/period: {}%/{}/{}/{}'.format(
             self.trade_metric['MDD ratio'],
             self.trade_metric['MDD start'],

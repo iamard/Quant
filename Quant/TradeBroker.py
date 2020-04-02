@@ -1,5 +1,10 @@
+import os as os
 import threading as threading
 import datetime as datetime
+import numpy as np
+import pandas as pandas
+import plotly.graph_objs as go
+from plotly.offline import plot
 from .DataFeed import *
 from .EventQueue import *
 from .EventType import *
@@ -80,48 +85,92 @@ class DataSource:
         price_data  = self.__query__(ticker_id)
         return price_data['low']
 
+class Order:
+        ORDER_STATUS_SUBMITTED = 'Submitted'
+        ORDER_STATUS_COMMITTED = 'Committed'
+
+        ORDER_ACTION_BUY = 'buy'
+        ORDER_ACTION_SELL = 'sell'
+
+        def __init__(self, order_time, action_type, ticker_id, quantity, trade_price, commission):
+            self.trade_status = Order.ORDER_STATUS_SUBMITTED
+            self.order_time   = order_time
+            self.action_type  = action_type
+            self.ticker_id    = ticker_id
+            self.quantity     = quantity
+            self.trade_price  = trade_price
+            self.commission   = commission
+
+        def update(self, status):
+            self.trade_status = status
+            
+        def status(self):
+            return self.trade_status
+
+        def time(self):
+            return self.order_time
+            
+        def action(self):
+            return self.action_type
+
+        def ticker(self):
+            return self.ticker_id
+            
+        def price(self):
+            return self.trade_price
+
+        def quantity(self):
+            return self.quantity
+            
 class TradeBroker:
     BAR_DATA = EventBase.BAR_EVENT
-
-    def __init__(self, time_beat, data_quoter, start_cash, look_back, log_handler):    
-        self.time_beat   = time_beat
-        self.data_quoter = data_quoter
-        self.portfolio   = Portfolio(data_quoter,
-                                     start_cash, 
-                                     log_handler)
-        self.look_back   = look_back
-        self.last_update = None
-        self.event_queue = None
-        self.timer_lock  = None
-        self.quote_timer = None
-        self.attach_list = []
-        self.log_handler = log_handler
-
-    def buy(self, ticker_id, quantity, price):
-        if price < self.data_quoter.low(ticker_id):
-            return
-
-        commision = (quantity * price) * 0.001
-        required  = (quantity * price) + commision
+        
+    def __init__(self, time_beat, data_quoter, start_cash, look_back, out_folder, log_handler):    
+        self.time_beat    = time_beat
+        self.data_quoter  = data_quoter
+        self.order_list   = []
+        self.portfolio    = Portfolio(data_quoter,
+                                      start_cash, 
+                                      log_handler)
+        self.look_back    = look_back
+        self.last_update  = None
+        self.event_queue  = None
+        self.timer_lock   = None
+        self.quote_timer  = None
+        self.trade_record = pandas.DataFrame()
+        self.trade_action = pandas.DataFrame()
+        self.out_folder   = out_folder
+        self.attach_list  = []
+        self.log_handler  = log_handler
+        
+        
+    def buy(self, ticker_id, quantity, trade_price):
+        commission = (quantity * trade_price) * 0.001
+        required   = (quantity * trade_price) + commission
         if self.portfolio.cash() < required:
-            return
-
-        return self.portfolio.transact(Portfolio.ACTION_BUY,
-                                       ticker_id,
-                                       quantity,
-                                       price,
-                                       (quantity * price) * 0.001)
+            return None
     
-    def sell(self, ticker_id, quantity, price):
-        if price > self.data_quoter.high(ticker_id) or \
-           self.portfolio.quantity(ticker_id) < quantity:
-            return
+        order = Order(self.time_beat.time(),
+                      Order.ORDER_ACTION_BUY,
+                      ticker_id,
+                      quantity,
+                      trade_price,
+                      commission)
+        self.order_list.append(order)
+        return order
+    
+    def sell(self, ticker_id, quantity, trade_price):
+        if self.portfolio.quantity(ticker_id) < quantity:
+            return None
 
-        return self.portfolio.transact(Portfolio.ACTION_SELL,
-                                       ticker_id,
-                                       quantity,
-                                       price,
-                                       (quantity * price) * 0.001)
+        order = Order(self.time_beat.time(),
+                      Order.ORDER_ACTION_SELL,
+                      ticker_id,
+                      quantity,
+                      trade_price,
+                      (quantity * trade_price) * 0.001)
+        self.order_list.append(order)
+        return order
 
     def quantity(self, ticker_id):
         return self.portfolio.quantity(ticker_id)
@@ -130,8 +179,47 @@ class TradeBroker:
         curr_time = self.time_beat.time()
         if self.last_update == None or \
            self.last_update != curr_time:
-           self.portfolio.update()
-           self.last_update = curr_time
+           
+            for order in self.order_list:
+                if order.action_type == Order.ORDER_ACTION_BUY:
+                    if order.trade_price >= self.data_quoter.low(order.ticker_id):
+                        self.portfolio.transact(Portfolio.ACTION_BUY,
+                                                order.ticker_id,
+                                                order.quantity,
+                                                order.trade_price,
+                                                order.commission)
+                        order.update(Order.ORDER_STATUS_COMMITTED)
+                elif order.action_type == Order.ORDER_ACTION_SELL:
+                    if order.trade_price <= self.data_quoter.high(order.ticker_id):
+                        self.portfolio.transact(Portfolio.ACTION_SELL,
+                                                order.ticker_id,
+                                                order.quantity,
+                                                order.trade_price,
+                                                order.commission)
+                        order.update(Order.ORDER_STATUS_COMMITTED)
+
+                if order.status() == Order.ORDER_STATUS_COMMITTED:
+                    self.trade_record = self.trade_record.append(
+                        { 'time': order.order_time,
+                          'ticker_id': order.ticker_id,
+                          'action': order.action_type,
+                          'price': order.trade_price,
+                          'quantity': order.quantity,
+                          'commission': order.commission
+                        },
+                        ignore_index = True
+                    )
+                
+                    action = order.ticker_id + '_' + order.action_type
+                    self.trade_action = self.trade_action.append(
+                        { 'date': order.order_time.date(),
+                          action: order.trade_price},
+                        ignore_index = True
+                    )
+                    
+            self.order_list.clear()
+            self.portfolio.update()
+            self.last_update = curr_time
 
     def cash(self):
         return self.portfolio.cash()
@@ -209,3 +297,80 @@ class TradeBroker:
 
     def free(self):
         pass
+        
+    def report(self):
+        price_dict  = self.data_quoter.quote(self.attach_list)
+        price_list  = []
+        for ticker_id in self.attach_list:
+            frame = price_dict[ticker_id][['close']]
+            frame.columns = [ticker_id]
+            price_list.append(frame)
+        price_frame = pandas.concat(price_list, axis = 1)
+        price_frame.reset_index(inplace = True)
+        price_frame.date = price_frame.date.apply(lambda x: x.date())
+
+        if self.trade_action.empty == False:
+            price_frame = pandas.merge(
+                price_frame, 
+                self.trade_action,
+                on = 'date',
+                how = 'outer')
+
+            price_frame.sort_values(by = 'date')
+            price_frame.to_csv(
+                os.path.join(self.out_folder, 'Trade.csv'),
+                encoding = 'cp950',
+                index = False
+            )
+
+        price_frame.set_index('date', inplace = True)
+            
+        # Plotly setup and traces
+        figure = go.Figure()
+
+        for ticker_id in self.attach_list:
+            figure.add_trace(go.Scatter(x = price_frame.index, 
+                                        y = price_frame[ticker_id].values,
+                                        name = ticker_id,
+                                        mode = 'lines'))
+            buy = ticker_id + '_buy'
+            if buy in price_frame.columns:
+                figure.add_trace(go.Scatter(x = price_frame.index, 
+                                            y = price_frame[buy].values,
+                                            name = buy,
+                                            mode = 'markers'))
+                            
+            sell = ticker_id + '_sell'
+            if sell in price_frame.columns:
+                figure.add_trace(go.Scatter(x = price_frame.index, 
+                                            y = price_frame[sell].values,
+                                            name = sell,
+                                            mode = 'markers'))
+                                            
+        figure.update_layout(
+            {'width': 800,
+             'height': 600,
+             'xaxis': {'showgrid': False, 'tickangle': 60 },
+             'yaxis': {'gridcolor': 'black'},
+             'paper_bgcolor': 'rgb(255, 255, 255)',
+             'plot_bgcolor': 'rgb(255, 255, 255)',
+            }
+        )
+        #figure.show()
+        figure.write_image(os.path.join(self.out_folder, 'Trade.png')) 
+
+        if self.trade_record.empty:
+            return
+
+        # Sort according time
+        self.trade_record.sort_values(by = 'time')
+
+        # Reserve column order
+        data = self.trade_record[['time', 'ticker_id', 'action', 'price', 'quantity', 'commission']]
+
+        # Save to csv file
+        data.to_csv(
+            os.path.join(self.out_folder, 'Record.csv'),
+            encoding = 'cp950',
+            index = False
+        )

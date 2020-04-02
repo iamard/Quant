@@ -54,15 +54,22 @@ class BackTester:
             for strategy in self.strategies:
                 if strategy.error() is not None:
                     error, stack = strategy.error()
+                    self.log_handler.error('Receive error')
+                    
                     self.log_handler.error(error)
                     self.log_handler.error(stack)
                 else:
                     name   = strategy.name()
                     metric = strategy.metric()
                     score[name] = metric
-            
+                    self.log_handler.error('get result')
+
             score = pd.DataFrame.from_dict(score)
-            score.to_csv('back_tester.csv', encoding = 'cp950')
+            score.to_csv(
+                'back_tester.csv',
+                encoding = 'cp950',
+                index = False
+            )
                     
     def stop(self):
         for strategy in self.strategies:
@@ -80,6 +87,6 @@ if __name__ == '__main__':
             back_tester.start()
             print('Test cases finish')
     except Exception as e:
-        print(traceback.format_exception(*sys.exc_info()))
+        traceback.print_exc(file = sys.stdout)
     finally:
         back_tester.stop()
