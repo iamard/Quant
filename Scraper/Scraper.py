@@ -6,9 +6,9 @@ import aiohttp
 
 class Scraper:
     def __init__(self):
-        self.__headers = {'Accept-Encoding': 'gzip,deflate',
-                          'Accept-Language': 'zh-TW',
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Maxthon/4.4.8.1000 Chrome/30.0.1599.101 Safari/537.36'}
+        self.__headers = {'Accept-Encoding': 'gzip, deflate, br',
+                          'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36'}
 
         self.out_path  = os.path.dirname(__file__) + "\\scraper_cache\\"
 
@@ -60,9 +60,11 @@ class Scraper:
         while count < retry:
             try:
                 async with asyncio.BoundedSemaphore(10), aiohttp.ClientSession() as session:
-                    async with session.get(url = url, params = params, \
-                        headers = self.__headers, raise_for_status = True) as response:
+                    async with session.get(
+                        url = url, params = params, headers = self.__headers, raise_for_status = True
+                    ) as response:
                         data = await response.read()
+                        #print(data)
                         if succ_sleep > 0:
                             await asyncio.sleep(succ_sleep)
                         return data.decode(code, 'ignore')

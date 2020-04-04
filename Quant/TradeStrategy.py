@@ -98,14 +98,6 @@ class TradeStrategy:
                 self.trade_metric.metric()
             )
 
-            #self.log_handler.error('plot begin')
-            #self.trade_plot.plot(title = 'test',
-            #                     x_axis = 'time',
-            #                     color = ['b', 'r', 'g'],
-            #                     style = ['-', 'None', 'None'],
-            #                     marker = ['None', '^', '^'])
-            #self.log_handler.error('plot end')
-
         if isinstance(event, StartEvent) == True:
             self.begin(event)
         elif isinstance(event, StopEvent) == True:
@@ -119,24 +111,6 @@ class TradeStrategy:
             self.trade_metric.record(
                 event.time, self.trade_broker.equity()
             )
-
-            #self.log_handler.error(event.time)
-            #for order in self.trade_list:
-            #    ticker_id  = order.ticker()
-            #    price_val  = self.data_source.close(ticker_id)
-            #    buy_price  = numpy.nan
-            #    sell_price = numpy.nan
-            #    if order.status() == Order.ORDER_STATUS_COMMITTED:
-            #        if order.action() == Order.ORDER_ACTION_BUY:
-            #            buy_price = order.price()
-            #        else:
-            #            sell_price = order.price()
-            #        
-            #    self.trade_plot.add({'time': order.time(), 
-            #                         ticker_id: price_val,
-            #                         'buy': buy_price,
-            #                         'sell': sell_price})
-            #self.trade_list.clear()
 
         if isinstance(event, OpenEvent) == True:
             self.open(event)

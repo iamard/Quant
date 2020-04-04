@@ -85,6 +85,10 @@ class DataSource:
         price_data  = self.__query__(ticker_id)
         return price_data['low']
 
+    def dividend(self, ticker_id):
+        price_data  = self.__query__(ticker_id)
+        return price_data['dividend']
+
 class Order:
         ORDER_STATUS_SUBMITTED = 'Submitted'
         ORDER_STATUS_COMMITTED = 'Committed'
@@ -142,8 +146,7 @@ class TradeBroker:
         self.out_folder   = out_folder
         self.attach_list  = []
         self.log_handler  = log_handler
-        
-        
+
     def buy(self, ticker_id, quantity, trade_price):
         commission = (quantity * trade_price) * 0.001
         required   = (quantity * trade_price) + commission
@@ -240,11 +243,20 @@ class TradeBroker:
         if ticker_data is None:
             self.log_handler.debug('No available price data!')
             return
-        
+
         self.log_handler.info('Trade on ' + end_date.strftime('%Y-%m-%d'))
 
         event_data = {}
         for ticker_id in self.attach_list:
+            # Add dividend value to cash
+            dividend    = self.data_quoter.dividend(ticker_id) * \
+                          self.portfolio.quantity(ticker_id)
+            if dividend != 0:
+                self.log_handler.error(
+                    'Get {} dividend {} on {}'.format(ticker_id, dividend, time)
+                )
+                self.portfolio.dividend(ticker_id, dividend)
+
             price_data  = ticker_data[ticker_id]
             end_index   = price_data.index.get_loc(end_date)
             start_index = end_index - self.look_back    
@@ -272,6 +284,9 @@ class TradeBroker:
         self.event_queue = EventQueue(self.log_handler)
         self.timer_lock  = threading.RLock()
         self.quote_timer = None
+
+        # Restore ticker list in portfolio
+        self.attach_list = self.portfolio.ticker()
 
     def start(self):
         curr_time  = self.time_beat.time()

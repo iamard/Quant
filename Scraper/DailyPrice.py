@@ -11,13 +11,45 @@ import asyncio as asyncio
 from .Scraper import Scraper
 from .TickerList import TickerList
 
+# Modified from fixed yahoo finance
+
 class DailyPrice(Scraper):
     def __init__(self):
         # Initialize Scraper class
         Scraper.__init__(self)
 
         self.__query = 'https://query1.finance.yahoo.com'
-        
+
+    async def _parse_action_data(self, data, tz = None):
+        dividends = pandas.DataFrame(columns = ["dividend"])
+        splits    = pandas.DataFrame(columns = ["stock split"])
+
+        if "events" in data:
+            if "dividends" in data["events"]:
+                dividends = pandas.DataFrame(
+                    data = list(data["events"]["dividends"].values())
+                )
+                dividends.set_index("date", inplace = True)
+                dividends.index = pandas.to_datetime(dividends.index, unit = "s")
+                dividends.sort_index(inplace = True)
+                #if tz is not None:
+                #    dividends.index = dividends.index.tz_localize(tz)
+                dividends.columns = ["dividend"]
+
+            if "splits" in data["events"]:
+                splits = pandas.DataFrame(
+                    data = list(data["events"]["splits"].values())
+                )
+                splits.set_index("date", inplace = True)
+                splits.index = pandas.to_datetime(splits.index, unit = "s")
+                splits.sort_index(inplace = True)
+                #if tz is not None:
+                #    splits.index = splits.index.tz_localize(tz)
+                splits["Stock Splits"] = splits["numerator"] / \
+                    splits["denominator"]
+                splits = splits["stock split"]
+        return dividends, splits
+
     async def quote_price_core(self, ticker_id, start_date, end_date, \
             logger, refresh = False, retry = 1):    
         logger.info('Try scraping ' + ticker_id + ' price')
@@ -52,18 +84,18 @@ class DailyPrice(Scraper):
         logger.error('Scraping ' + ticker_id + ' price start!')
         data = await self._handle_get_request_async(query, params)
         logger.error('Scraping ' + ticker_id + ' price done!')
-            
+
         if data is None or "Will be right back" in data:
             logger.error('Scraping ' + ticker_id + ' price failed!')
             return (ticker_id, None)
 
         data = json.loads(data)
         if "chart" in data and data["chart"]["error"]:
-            logger.error('Scraping ' + ticker_id + ' price failed!')
-            return None
+            logger.error('Error in ' + ticker_id + ' price data!')
+            return (ticker_id, None)
         elif "chart" not in data or data["chart"]["result"] is None or \
              len(data["chart"]["result"]) == 0:
-            logger.error('Scraping ' + ticker_id + ' price failed!')
+            logger.error('Chart not in ' + ticker_id + ' data!')
             return (ticker_id, None)
         try:
             array = data["chart"]["result"][0]
@@ -79,38 +111,47 @@ class DailyPrice(Scraper):
             if "adjclose" in array["indicators"]:
                 adjclose = array["indicators"]["adjclose"][0]["adjclose"]
 
-            frame = pandas.DataFrame({"open": opens,
-                                      "high": highs,
-                                      "low": lows,
-                                      "close": closes,
-                                      "adj_close": adjclose,
-                                      "volume": volumes})
+            price_frame = pandas.DataFrame({"open": opens,
+                                            "high": highs,
+                                            "low": lows,
+                                            "close": closes,
+                                            "adj_close": adjclose,
+                                            "volume": volumes})
 
-            frame.index = pandas.to_datetime(timestamps, unit = 's')
-            frame.sort_index(inplace = True, ascending = True)
+            price_frame.index = pandas.to_datetime(timestamps, unit = 's')
+            price_frame.sort_index(inplace = True, ascending = True)
             
-            frame = numpy.round(frame, data["chart"]["result"][0]["meta"]["priceHint"])
-            frame['volume'] = frame['volume'].fillna(0).astype(numpy.int64)
-            frame.dropna(inplace = True)
+            price_frame = numpy.round(price_frame, data["chart"]["result"][0]["meta"]["priceHint"])
+            price_frame['volume'] = price_frame['volume'].fillna(0).astype(numpy.int64)
+            price_frame.dropna(inplace = True)
 
-            frame.index = frame.index.tz_localize("UTC").tz_convert( \
+            dividend, split = await self._parse_action_data(array, None)
+
+            # Concat into one data frame
+            price_frame = pandas.concat(
+                [price_frame, dividend, split], axis = 1, sort = True
+            )
+            price_frame["dividend"].fillna(0, inplace = True)
+            price_frame["stock split"].fillna(0, inplace = True)
+            
+            price_frame.index = price_frame.index.tz_localize("UTC").tz_convert( \
                 data["chart"]["result"][0]["meta"]["exchangeTimezoneName"])
-            
-            frame.index = pandas.to_datetime(frame.index.date, format = '%Y-%m-%d')
-            frame.index.name = "date"
+
+            price_frame.index = pandas.to_datetime(price_frame.index.date, format = '%Y-%m-%d')
+            price_frame.index.name = "date"
         except:
-            logger.error('Scraping ' + ticker_id + ' price failed!')
+            logger.error('Exception when parsing ' + ticker_id + ' data!')
             return (ticker_id, None)
                 
-        frame[['open', 'high', 'low', 'close', 'adj_close', 'volume']]= \
-        frame[['open', 'high', 'low', 'close', 'adj_close', 'volume']].astype(float)
+        price_frame[['open', 'high', 'low', 'close', 'adj_close', 'volume']]= \
+        price_frame[['open', 'high', 'low', 'close', 'adj_close', 'volume']].astype(float)
 
         #frame = frame.reset_index()
         #frame = frame.sort_values(by = ['date'], ascending = True)
         #frame_data[['date']] = frame_data[['date']].astype(object)
         #frame = frame.set_index('date')
 
-        return (ticker_id, frame)
+        return (ticker_id, price_frame)
     
     async def quote_price_start(self, tasks):
         result = await asyncio.gather(*tasks)
@@ -216,9 +257,10 @@ class DailyPrice(Scraper):
 if __name__ == "__main__":
     ticker_list = TickerList().quote_ticker_list(logging.getLogger(), refresh = True)
     if ticker_list is None:
+        print('Ticker list is none')
         pass
     else:
-        ticker_list = list(ticker_list.index)
+        ticker_list = ['0050.tw'] #list(ticker_list.index)
         scraper = DailyPrice()
         scraper.quote_daily_price(ticker_list, '2005-01-01', '2019-08-02', \
             logging.getLogger(), refresh = True, dump = "csv")

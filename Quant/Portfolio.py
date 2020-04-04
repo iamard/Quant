@@ -206,6 +206,9 @@ class Portfolio:
         else:
             self.__modify__(action, ticker_id, quantity, price, commission)
 
+    def ticker(self):
+        return list(self.positions.keys())
+
     def quantity(self, ticker_id):
         position = self.positions.get(ticker_id, None)
         if position is None:
@@ -218,6 +221,9 @@ class Portfolio:
 
     def cash(self):
         return self.cur_cash
+
+    def dividend(self, ticker, dividend):
+        self.cur_cash += dividend
         
     def equity(self):
         return self.all_equity
